@@ -11,4 +11,3 @@
 2. Create a new project
 3. Import this folder from your GitHub or upload manually
 4. Deploy — your site will be live!
-
