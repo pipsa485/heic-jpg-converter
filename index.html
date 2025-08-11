@@ -1,26 +1,83 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>HEIC to JPG Converter</title>
-<meta name="description" content="Free online HEIC to JPG converter. Fast, secure, and easy to use." />
-<meta name="keywords" content="HEIC to JPG, image converter, free converter" />
-<meta property="og:title" content="HEIC to JPG Converter" />
-<meta property="og:description" content="Free online HEIC to JPG converter. Fast, secure, and easy to use." />
-<meta property="og:image" content="og-image.png" />
-<meta property="og:type" content="website" />
-<link rel="icon" href="favicon.ico" type="image/x-icon" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Convert HEIC images to JPG quickly and securely">
+    <meta property="og:title" content="HEIC to JPG Converter">
+    <meta property="og:description" content="Convert HEIC images to JPG with ease">
+    <meta property="og:type" content="website">
+    <title>HEIC to JPG Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/heic2any@0.0.3/dist/heic2any.min.js"></script>
+    <style>
+        #progressBarContainer {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        #progressBar {
+            height: 1rem;
+            background-color: #4ade80;
+            width: 0%;
+            transition: width 0.3s ease-in-out;
+        }
+        .download-btn {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
 </head>
-<body style="background-color:#1c1c1c; color:#f0f0f0; font-family:sans-serif; text-align:center; padding:20px;">
-<h1>HEIC to JPG Converter</h1>
-<p>Convert your HEIC images to JPG quickly and securely.</p>
-<input type="file" id="fileInput" multiple accept=".heic" />
-<div id="progressContainer" style="width:50%;margin:auto;background:#333;height:20px;border-radius:10px;overflow:hidden;">
-<div id="progressBar" style="height:100%;width:0%;background:#6c63ff;"></div>
-</div>
-<br>
-<button onclick="downloadZip()" style="padding:10px 20px; background:#6c63ff; color:#fff; border:none; border-radius:5px;">Download All as ZIP</button>
-<script src="script.js"></script>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <h1 class="text-2xl font-bold text-center mb-4">HEIC to JPG Converter</h1>
+        <p class="text-gray-600 text-center mb-6">Convert your HEIC images to JPG quickly and securely.</p>
+        <input type="file" id="fileInput" accept=".heic,.HEIC" multiple class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-4">
+        <div id="progressBarContainer" class="mb-4">
+            <div id="progressBar"></div>
+        </div>
+        <div id="output" class="space-y-4"></div>
+    </div>
+    <script src="script.js"></script>
 </body>
 </html>
